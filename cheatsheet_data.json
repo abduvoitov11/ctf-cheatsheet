@@ -1,0 +1,602 @@
+{
+  "title": "CTF Cheatsheet — Recon & Enumeration",
+  "target_default": "10.10.x.x",
+  "domain_default": "orbitek.lab",
+  "sections": [
+    {
+      "id": "sec-umumiy",
+      "num": "00",
+      "title": "UMUMIY SKAN",
+      "name": "Dastlabki TCP & UDP Enumeratsiya",
+      "category": "Recon",
+      "difficulty": "Initial",
+      "ports": "Barcha portlar",
+      "tools": [
+        "nmap"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "TCP barcha portlarni xizmat va versiya bilan skanerlash",
+          "code": "nmap -sC -sV -p- -oN scan.txt <SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "UDP eng mashhur 100 ta port (SNMP/TFTP uchun)",
+          "code": "sudo nmap -sU --top-ports 100 <SRV>"
+        }
+      ]
+    },
+    {
+      "id": "sec-01",
+      "num": "01",
+      "title": "CHAOS-BANNER",
+      "name": "DNS CHAOS Class Version Leak",
+      "category": "DNS",
+      "difficulty": "Easy 100",
+      "ports": "53 (UDP/TCP)",
+      "tools": [
+        "dig",
+        "nmap"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "BIND versiyasini CHAOS sinfidan so'rash",
+          "code": "dig CH TXT version.bind @<SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "DNS hostname'ni CHAOS sinfidan so'rash",
+          "code": "dig CH TXT hostname.bind @<SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "DNS NSID nmap skripti",
+          "code": "nmap -sSU -p 53 --script dns-nsid <SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "Port 53 versiya skani",
+          "code": "nmap -sV -p 53 <SRV>"
+        }
+      ]
+    },
+    {
+      "id": "sec-02",
+      "num": "02",
+      "title": "DELEGATED-LEAK",
+      "name": "DNS Delegated Child Zone AXFR",
+      "category": "DNS",
+      "difficulty": "Medium 200",
+      "ports": "53 (TCP)",
+      "tools": [
+        "dig"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "Asosiy domen Name Server yozuvlarini olish",
+          "code": "dig NS orbitek.lab @<SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "Delegatsiya qilingan child zonaning NS yozuvlari",
+          "code": "dig NS <topilgan-nom>.orbitek.lab @<SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "Child zona SOA yozuvi",
+          "code": "dig SOA <topilgan-nom>.orbitek.lab @<SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "Child zonani to'liq AXFR dump qilish",
+          "code": "dig axfr <child-zone>.orbitek.lab @<SRV>"
+        }
+      ]
+    },
+    {
+      "id": "sec-03",
+      "num": "03",
+      "title": "DOT-NOTES",
+      "name": "FTP Anonim & Yashirin Fayllar",
+      "category": "FTP",
+      "difficulty": "Easy 100",
+      "ports": "21 (TCP)",
+      "tools": [
+        "ftp",
+        "nmap",
+        "wget"
+      ],
+      "commands": [
+        {
+          "type": "session",
+          "sessionType": "ftp",
+          "entryCmd": "ftp <SRV>",
+          "creds": "user: anonymous | password: <Enter>",
+          "steps": [
+            "ls -la",
+            "get .notes"
+          ]
+        },
+        {
+          "type": "cmd",
+          "label": "Anonim FTP mavjudligini nmap bilan tekshirish",
+          "code": "nmap -p 21 --script ftp-anon <SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "FTP dagi barcha fayllarni rekursiv yuklab olish",
+          "code": "wget -m \"ftp://anonymous:anonymous@<SRV>/\""
+        }
+      ]
+    },
+    {
+      "id": "sec-04",
+      "num": "04",
+      "title": "EHLO-ASSET",
+      "name": "SMTP ESMTP Extensions Probe",
+      "category": "SMTP",
+      "difficulty": "Easy 100",
+      "ports": "25 (TCP)",
+      "tools": [
+        "nmap",
+        "nc"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "SMTP komandalarini nmap skripti orqali sanash",
+          "code": "nmap -p 25 --script smtp-commands <SRV>"
+        },
+        {
+          "type": "session",
+          "sessionType": "nc",
+          "entryCmd": "nc <SRV> 25",
+          "steps": [
+            "EHLO test"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sec-05",
+      "num": "05",
+      "title": "EXTENDED-MIB",
+      "name": "SNMP NET-SNMP Extend OID Walk",
+      "category": "SNMP",
+      "difficulty": "Medium 200",
+      "ports": "161 (UDP)",
+      "tools": [
+        "snmpwalk"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "NET-SNMP nsExtendObjects OID so'rovi",
+          "code": "snmpwalk -v2c -c public <SRV> 1.3.6.1.4.1.8072.1.3"
+        },
+        {
+          "type": "cmd",
+          "label": "Net-SNMP Enterprise shajarasini to'liq so'rash",
+          "code": "snmpwalk -v2c -c public <SRV> .1.3.6.1.4.1.8072"
+        },
+        {
+          "type": "cmd",
+          "label": "SNMP umumiy to'liq walk",
+          "code": "snmpwalk -v2c -c public <SRV>"
+        }
+      ]
+    },
+    {
+      "id": "sec-06",
+      "num": "06",
+      "title": "HEADER-TAG",
+      "name": "HTTP Response Header Recon",
+      "category": "HTTP",
+      "difficulty": "Easy 100",
+      "ports": "80 / Web",
+      "tools": [
+        "nmap",
+        "curl"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "Web portni aniqlash",
+          "code": "nmap -sV <SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "HTTP sarlavhalarini nmap orqali tekshirish",
+          "code": "nmap -p <port> --script http-headers <SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "HTTP response headerlarni curl orqali olish",
+          "code": "curl -I http://<SRV>:<port>/"
+        }
+      ]
+    },
+    {
+      "id": "sec-07",
+      "num": "07",
+      "title": "NULL-RPC",
+      "name": "Samba Null RPC Session Enumeration",
+      "category": "SMB / RPC",
+      "difficulty": "Medium 200",
+      "ports": "135, 139, 445",
+      "tools": [
+        "rpcclient",
+        "enum4linux",
+        "enum4linux-ng"
+      ],
+      "commands": [
+        {
+          "type": "session",
+          "sessionType": "rpcclient",
+          "entryCmd": "rpcclient -U \"\" -N <SRV>",
+          "steps": [
+            "enumdomusers",
+            "querydispinfo",
+            "queryuser <rid_yoki_nom>"
+          ]
+        },
+        {
+          "type": "cmd",
+          "label": "Enum4linux to'liq avtomatik sanash",
+          "code": "enum4linux -a <SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "Enum4linux-ng barcha parametrlari bilan",
+          "code": "enum4linux-ng -A <SRV>"
+        }
+      ]
+    },
+    {
+      "id": "sec-08",
+      "num": "08",
+      "title": "RCPT-ORACLE",
+      "name": "SMTP RCPT User Bruteforce & Mail Trigger",
+      "category": "SMTP",
+      "difficulty": "Medium 200",
+      "ports": "25 (TCP)",
+      "tools": [
+        "smtp-user-enum",
+        "nc"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "SecLists orqali foydalanuvchilarni RCPT orqali topish",
+          "code": "smtp-user-enum -M RCPT -U /usr/share/seclists/Usernames/Names/names.txt -D orbitek.lab -t <SRV>"
+        },
+        {
+          "type": "session",
+          "sessionType": "nc",
+          "entryCmd": "nc <SRV> 25",
+          "steps": [
+            "HELO test",
+            "MAIL FROM:<a@test.com>",
+            "RCPT TO:<topilgan-user@orbitek.lab>",
+            "DATA",
+            "Subject: test",
+            "",
+            "test",
+            "."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sec-09",
+      "num": "09",
+      "title": "REGISTRY-TRAIL",
+      "name": "Custom WHOIS Daemon & Registry Lock",
+      "category": "WHOIS",
+      "difficulty": "Easy 100",
+      "ports": "43 (TCP)",
+      "tools": [
+        "whois"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "Maqsad serverdagi WHOIS xizmatidan domen so'rash",
+          "code": "whois -h <SRV> orbitek.lab"
+        },
+        {
+          "type": "cmd",
+          "label": "Topilgan Handle ID bo'yicha to'liq ma'lumot olish",
+          "code": "whois -h <SRV> <HANDLE-ID>"
+        }
+      ]
+    },
+    {
+      "id": "sec-10",
+      "num": "10",
+      "title": "SERVICE-LOCATOR",
+      "name": "DNS SRV Records Discovery",
+      "category": "DNS",
+      "difficulty": "Medium 200",
+      "ports": "53 (UDP/TCP)",
+      "tools": [
+        "dnsrecon",
+        "nmap",
+        "dig"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "DNS SRV yozuvlarini dnsrecon bilan sanash",
+          "code": "dnsrecon -d orbitek.lab -n <SRV> -t srv"
+        },
+        {
+          "type": "cmd",
+          "label": "Nmap dns-srv-enum skripti",
+          "code": "nmap --script dns-srv-enum --script-args dns-srv-enum.domain=orbitek.lab <SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "Topilgan host bo'yicha TXT yozuvini tekshirish",
+          "code": "dig TXT <target-host>.orbitek.lab @<SRV>"
+        }
+      ]
+    },
+    {
+      "id": "sec-11",
+      "num": "11",
+      "title": "SILENT-PORT",
+      "name": "Bannerless TCP Service Fingerprinting",
+      "category": "Recon",
+      "difficulty": "Medium 200",
+      "ports": "Barcha portlar",
+      "tools": [
+        "nmap",
+        "nc"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "Barcha portlarda chuqur versiya skani (Service Fingerprint)",
+          "code": "nmap -sV -p- <SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "Version probing intensifikatsiyasi",
+          "code": "nmap -sV --version-all <SRV>"
+        },
+        {
+          "type": "session",
+          "sessionType": "nc",
+          "entryCmd": "nc <SRV> <port>",
+          "steps": [
+            "HELP",
+            "STATUS",
+            "INFO"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sec-12",
+      "num": "12",
+      "title": "SUB-HUNT",
+      "name": "DNS Subdomain Brute-Force & TXT Extraction",
+      "category": "DNS",
+      "difficulty": "Easy 100",
+      "ports": "53 (UDP)",
+      "tools": [
+        "dnsrecon",
+        "gobuster",
+        "dig"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "Dnsrecon bilan subdomenlarni bruteforce qilish",
+          "code": "dnsrecon -d orbitek.lab -n <SRV> -D /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt -t brt"
+        },
+        {
+          "type": "cmd",
+          "label": "Gobuster dns rejimida subdomen qidirish",
+          "code": "gobuster dns -d orbitek.lab -r <SRV> -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt"
+        },
+        {
+          "type": "cmd",
+          "label": "Topilgan subdomenning TXT yozuvini o'qish",
+          "code": "dig TXT <ticket-sub>.orbitek.lab @<SRV>"
+        }
+      ]
+    },
+    {
+      "id": "sec-13",
+      "num": "13",
+      "title": "UDP-CONFIG",
+      "name": "TFTP UDP Recon & Config Dump",
+      "category": "TFTP",
+      "difficulty": "Medium 200",
+      "ports": "69 (UDP)",
+      "tools": [
+        "nmap",
+        "tftp",
+        "curl"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "UDP skan orqali TFTP mavjudligini aniqlash",
+          "code": "sudo nmap -sU --top-ports 100 <SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "TFTP enum nmap skripti",
+          "code": "sudo nmap -sU -p 69 --script tftp-enum <SRV>"
+        },
+        {
+          "type": "session",
+          "sessionType": "tftp",
+          "entryCmd": "tftp <SRV>",
+          "steps": [
+            "get <config-file>"
+          ]
+        },
+        {
+          "type": "cmd",
+          "label": "Curl yordamida to'g'ridan-to'g'ri TFTP dan yuklab olish",
+          "code": "curl -o cfg \"tftp://<SRV>/<config-file>\""
+        }
+      ]
+    },
+    {
+      "id": "sec-14",
+      "num": "14",
+      "title": "UNLISTED-SHARE",
+      "name": "Hidden SMB Share & Nightly Backups",
+      "category": "SMB / RPC",
+      "difficulty": "Medium 200",
+      "ports": "139, 445 (TCP)",
+      "tools": [
+        "smbclient",
+        "enum4linux"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "Ochiq public share'larni sanash (Null session)",
+          "code": "smbclient -L //<SRV>/ -N"
+        },
+        {
+          "type": "cmd",
+          "label": "Public share'ga ulanish",
+          "code": "smbclient //<SRV>/public -N"
+        },
+        {
+          "type": "session",
+          "sessionType": "smbclient",
+          "entryCmd": "smbclient //<SRV>/<hidden-share> -N",
+          "steps": [
+            "ls",
+            "get <backup-log>"
+          ]
+        },
+        {
+          "type": "cmd",
+          "label": "Share nomlarini enum4linux orqali bruteforce qilish",
+          "code": "enum4linux -S <SRV>"
+        }
+      ]
+    },
+    {
+      "id": "sec-15",
+      "num": "15",
+      "title": "VAULT-PIVOT",
+      "name": "DNS + SMB Null RPC + Passphrase Vault",
+      "category": "Capstone",
+      "difficulty": "Hard 300",
+      "ports": "53, 445, <srv-port>",
+      "tools": [
+        "dig",
+        "rpcclient",
+        "enum4linux",
+        "nc"
+      ],
+      "commands": [
+        {
+          "type": "cmd",
+          "label": "1-bosqich: Staging subdomenni AXFR orqali olish",
+          "code": "dig axfr staging.orbitek.lab @<SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "2-bosqich: Vault portini SRV yozuvidan aniqlash",
+          "code": "dig SRV _vault._tcp.staging.orbitek.lab @<SRV>"
+        },
+        {
+          "type": "session",
+          "sessionType": "rpcclient",
+          "entryCmd": "rpcclient -U \"\" -N <SRV>",
+          "steps": [
+            "enumdomusers",
+            "queryuser <vault-svc-account>"
+          ]
+        },
+        {
+          "type": "cmd",
+          "label": "Muqobil: Enum4linux orqali foydalanuvchi ma'lumotlarini olish",
+          "code": "enum4linux -a <SRV>"
+        },
+        {
+          "type": "cmd",
+          "label": "3-bosqich: Aniqlangan portga ulanib passphrase kiritish",
+          "code": "nc <SRV> <srv-port>"
+        }
+      ]
+    }
+  ],
+  "ports_reference": [
+    {
+      "port": "21",
+      "proto": "TCP",
+      "service": "FTP",
+      "desc": "Anonim kirish, nuqtali yashirin fayllar (.notes)"
+    },
+    {
+      "port": "22",
+      "proto": "TCP",
+      "service": "SSH",
+      "desc": "Masofaviy xavfsiz boshqaruv"
+    },
+    {
+      "port": "25",
+      "proto": "TCP",
+      "service": "SMTP",
+      "desc": "EHLO kengaytmalar, RCPT TO orqali foydalanuvchi sanash"
+    },
+    {
+      "port": "43",
+      "proto": "TCP",
+      "service": "WHOIS",
+      "desc": "Domen ma'lumotlari, Handle ID, Registry-lock kodi"
+    },
+    {
+      "port": "53",
+      "proto": "TCP/UDP",
+      "service": "DNS",
+      "desc": "CHAOS version.bind, AXFR zone transfer, SRV records, Subdomain brute"
+    },
+    {
+      "port": "69",
+      "proto": "UDP",
+      "service": "TFTP",
+      "desc": "Parolsiz router/switch konfiguratsiyalari (running-config)"
+    },
+    {
+      "port": "80",
+      "proto": "TCP",
+      "service": "HTTP",
+      "desc": "Response sarlavhalari (X-Asset-Tag), yashirin assetlar"
+    },
+    {
+      "port": "135",
+      "proto": "TCP",
+      "service": "MSRPC",
+      "desc": "Microsoft RPC endpoint mapper"
+    },
+    {
+      "port": "139/445",
+      "proto": "TCP",
+      "service": "SMB",
+      "desc": "Null session rpcclient, enum4linux, yashirin backup share'lar"
+    },
+    {
+      "port": "161",
+      "proto": "UDP",
+      "service": "SNMP",
+      "desc": "Default public community, NET-SNMP Extend OID (1.3.6.1.4.1.8072)"
+    }
+  ],
+  "tools_install": "sudo apt install -y dnsutils whois smtp-user-enum snmp smbclient tftp-hpa dnsrecon gobuster"
+}

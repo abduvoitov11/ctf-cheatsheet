@@ -1,0 +1,103 @@
+=== CTF CHEATSHEET — INFO GATHERING (orbitek.lab) ===
+
+--- UMUMIY — AVVAL SHUNI ISHLATING ---
+nmap -sC -sV -p- -oN scan.txt <SRV>
+sudo nmap -sU --top-ports 100 <SRV>
+
+--- 1. CHAOS-BANNER  (Easy 100) ---
+dig CH TXT version.bind @<SRV>
+dig CH TXT hostname.bind @<SRV>
+nmap -sSU -p 53 --script dns-nsid <SRV>
+nmap -sV -p 53 <SRV>
+
+--- 2. DELEGATED-LEAK  (Medium 200) ---
+dig NS orbitek.lab @<SRV>
+dig NS <topilgan-nom>.orbitek.lab @<SRV>
+dig SOA <topilgan-nom>.orbitek.lab @<SRV>
+dig axfr <child-zone>.orbitek.lab @<SRV>
+
+--- 3. DOT-NOTES  (Easy 100) ---
+ftp <SRV>
+  ls -la
+  get .notes
+nmap -p 21 --script ftp-anon <SRV>
+wget -m "ftp://anonymous:anonymous@<SRV>/"
+
+--- 4. EHLO-ASSET  (Easy 100) ---
+nmap -p 25 --script smtp-commands <SRV>
+  nc <SRV> 25
+  EHLO test
+
+--- 5. EXTENDED-MIB  (Medium 200) ---
+snmpwalk -v2c -c public <SRV> 1.3.6.1.4.1.8072.1.3
+snmpwalk -v2c -c public <SRV> .1.3.6.1.4.1.8072
+snmpwalk -v2c -c public <SRV>
+
+--- 6. HEADER-TAG  (Easy 100) ---
+nmap -sV <SRV>
+nmap -p <port> --script http-headers <SRV>
+curl -I http://<SRV>:<port>/
+
+--- 7. NULL-RPC  (Medium 200) ---
+rpcclient -U "" -N <SRV>
+  enumdomusers
+  querydispinfo
+  queryuser <rid_yoki_nom>
+enum4linux -a <SRV>
+enum4linux-ng -A <SRV>
+
+--- 8. RCPT-ORACLE  (Medium 200) ---
+smtp-user-enum -M RCPT -U /usr/share/seclists/Usernames/Names/names.txt -D orbitek.lab -t <SRV>
+  HELO test
+  MAIL FROM:<a@test.com>
+  RCPT TO:<topilgan-user@orbitek.lab>
+  DATA
+  Subject: test
+  test
+  .
+
+--- 9. REGISTRY-TRAIL  (Easy 100) ---
+whois -h <SRV> orbitek.lab
+whois -h <SRV> <HANDLE-ID>
+
+--- 10. SERVICE-LOCATOR  (Medium 200) ---
+dnsrecon -d orbitek.lab -n <SRV> -t srv
+nmap --script dns-srv-enum --script-args dns-srv-enum.domain=orbitek.lab <SRV>
+dig TXT <target-host>.orbitek.lab @<SRV>
+
+--- 11. SILENT-PORT  (Medium 200) ---
+nmap -sV -p- <SRV>
+nmap -sV --version-all <SRV>
+  nc <SRV> <port>
+  HELP        (yoki STATUS / INFO — xizmat o'zi ko'rsatadi)
+
+--- 12. SUB-HUNT  (Easy 100) ---
+dnsrecon -d orbitek.lab -n <SRV> -D /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt -t brt
+gobuster dns -d orbitek.lab -r <SRV> -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt
+dig TXT <ticket-sub>.orbitek.lab @<SRV>
+
+--- 13. UDP-CONFIG  (Medium 200) ---
+sudo nmap -sU --top-ports 100 <SRV>
+sudo nmap -sU -p 69 --script tftp-enum <SRV>
+tftp <SRV>
+  get <config-file>          (masalan running-config / <host>.cfg)
+curl -o cfg "tftp://<SRV>/<config-file>"
+
+--- 14. UNLISTED-SHARE  (Medium 200) ---
+smbclient -L //<SRV>/ -N
+smbclient //<SRV>/public -N
+smbclient //<SRV>/<hidden-share> -N
+  ls
+  get <backup-log>
+enum4linux -S <SRV>
+
+--- 15. VAULT-PIVOT  (Hard 300 — CAPSTONE) ---
+dig axfr staging.orbitek.lab @<SRV>
+dig SRV _vault._tcp.staging.orbitek.lab @<SRV>
+rpcclient -U "" -N <SRV>
+  enumdomusers
+  queryuser <vault-svc-account>
+nc <SRV> <srv-port>
+
+--- TEZ ESLATMA — PORTLAR ---
+  sudo apt install dnsutils whois smtp-user-enum snmp smbclient tftp-hpa dnsrecon
